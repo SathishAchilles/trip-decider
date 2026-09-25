@@ -1,26 +1,142 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-dm-sans);
+  --font-heading: var(--font-fraunces);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-fit: var(--fit);
+  --color-stretch: var(--stretch);
+  --color-veto: var(--veto);
+  --color-line: var(--line);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Postcard theme: warm paper for intake, neutral ink for the matrix. */
+:root {
+  --paper: #f5efe6;
+  --ink: #1f2a2e;
+  --accent-warm: #d9653b;
+  --fit: #2a7f7a;
+  --stretch: #b7791f;
+  --veto: #7a4e6d;
+  --line: #e2d8ca;
+  --card-paper: #fbf8f3;
+  --muted-ink: #5c6669;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--card-paper);
+  --card-foreground: var(--ink);
+  --popover: var(--card-paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--accent-warm);
+  --primary-foreground: #ffffff;
+  --secondary: #ece4d8;
+  --secondary-foreground: var(--ink);
+  --muted: #ece4d8;
+  --muted-foreground: var(--muted-ink);
+  --accent: #ece4d8;
+  --accent-foreground: var(--ink);
+  --destructive: #b3412b;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--accent-warm);
+  --chart-1: var(--fit);
+  --chart-2: var(--stretch);
+  --chart-3: var(--veto);
+  --chart-4: var(--accent-warm);
+  --chart-5: var(--muted-ink);
+  --radius: 0.75rem;
+  --sidebar: var(--card-paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--accent-warm);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ece4d8;
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--accent-warm);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #1b1f21;
+    --ink: #ede7de;
+    --accent-warm: #e98059;
+    --fit: #4db3ac;
+    --stretch: #e0a340;
+    --veto: #b98aae;
+    --line: #2e3438;
+    --card-paper: #22282b;
+    --muted-ink: #a3aaad;
+
+    --primary-foreground: #1b1f21;
+    --secondary: #2a3033;
+    --muted: #2a3033;
+    --accent: #2a3033;
+    --destructive: #e0735c;
+    --sidebar-primary-foreground: #1b1f21;
+    --sidebar-accent: #2a3033;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@layer components {
+  .stamp {
+    @apply inline-flex items-center rounded-md border-2 border-dashed px-2 py-0.5 font-heading text-xs font-semibold tracking-wide uppercase;
+    border-color: var(--accent-warm);
+    color: var(--accent-warm);
+  }
 }
