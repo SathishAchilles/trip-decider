@@ -9,6 +9,8 @@ import { formatDateTime, formatInr } from "@/lib/format";
 import { shareMessage } from "@/lib/share";
 import { ownCosts, publicResults } from "@/server/ranking";
 import { loadTrip, progressOf, viewerFor, windowDates } from "@/server/trips";
+import { Shell } from "@/components/Shell";
+import { stageIndex, TRIP_STAGES } from "@/components/StageRail";
 import { baseUrl } from "@/server/url";
 
 export const maxDuration = 300;
@@ -43,10 +45,11 @@ export default async function MePage(props: PageProps<"/t/[tripId]/me">) {
       hardNoText: viewer.hardNoText ?? "",
     };
     return (
-      <div className="space-y-5">
-        <header className="space-y-1">
+      <Shell stage={{ steps: TRIP_STAGES, current: stageIndex(trip.state) }} right={`Hi, ${viewer.displayName}!`}>
+      <div className="mx-auto max-w-2xl space-y-5">
+        <header className="space-y-2">
           <span className="stamp">{trip.name}</span>
-          <h1 className="font-heading text-2xl font-semibold">Hi {viewer.displayName} — about 3 minutes</h1>
+          <h1 className="font-heading text-3xl font-bold">Your answers — about 3 minutes</h1>
           <p className="text-sm text-muted-foreground">Answers close {formatDateTime(trip.deadline)}.</p>
         </header>
         <IntakeForm
@@ -56,6 +59,7 @@ export default async function MePage(props: PageProps<"/t/[tripId]/me">) {
           suggestionsEnabled={Boolean(process.env.ANTHROPIC_API_KEY)}
         />
       </div>
+      </Shell>
     );
   }
 
@@ -67,10 +71,11 @@ export default async function MePage(props: PageProps<"/t/[tripId]/me">) {
   const message = shareMessage(trip, { ...progress, leader: leader && `${leader.destinationName} (${leader.windowLabel})` }, link);
 
   return (
+    <Shell stage={{ steps: TRIP_STAGES, current: stageIndex(trip.state) }} right={`Hi, ${viewer.displayName}!`}>
     <div className="space-y-6">
-      <header className="space-y-1">
+      <header className="space-y-2">
         <span className="stamp">{trip.name}</span>
-        <h1 className="font-heading text-2xl font-semibold">Thanks, {viewer.displayName}</h1>
+        <h1 className="font-heading text-3xl font-bold sm:text-4xl">Thanks, {viewer.displayName}</h1>
         <p className="text-muted-foreground">
           {trip.state === "OPEN"
             ? `${progress.submittedCount} of ${progress.total} in. Results open when everyone has answered or at ${formatDateTime(trip.deadline)}.`
@@ -130,5 +135,6 @@ export default async function MePage(props: PageProps<"/t/[tripId]/me">) {
         )}
       </section>
     </div>
+    </Shell>
   );
 }

@@ -9,6 +9,8 @@ import { formatDateTime } from "@/lib/format";
 import { shareMessage } from "@/lib/share";
 import { publicResults } from "@/server/ranking";
 import { loadTrip, progressOf, viewerFor } from "@/server/trips";
+import { Shell } from "@/components/Shell";
+import { stageIndex, TRIP_STAGES } from "@/components/StageRail";
 import { baseUrl } from "@/server/url";
 
 export const maxDuration = 300;
@@ -29,10 +31,11 @@ export default async function GroupPage(props: PageProps<"/t/[tripId]">) {
   const message = shareMessage(bundle.trip, { ...progress, leader: leader && `${leader.destinationName} (${leader.windowLabel})` }, link);
 
   return (
+    <Shell stage={{ steps: TRIP_STAGES, current: stageIndex(bundle.trip.state) }}>
     <div className="space-y-6">
-      <header className="space-y-2">
+      <header className="space-y-3">
         <span className="stamp">Answers close {formatDateTime(bundle.trip.deadline)}</span>
-        <h1 className="font-heading text-3xl font-semibold">{bundle.trip.name}</h1>
+        <h1 className="display-name text-[clamp(2.5rem,9vw,6rem)]">{bundle.trip.name}</h1>
         <p className="text-muted-foreground">
           {progress.submittedCount} of {progress.total} in
           {progress.pendingNames.length > 0 && ` — waiting on ${progress.pendingNames.join(", ")}`}
@@ -55,7 +58,7 @@ export default async function GroupPage(props: PageProps<"/t/[tripId]">) {
                 <button
                   type="submit"
                   disabled={person.claimed}
-                  className="flex h-12 w-full items-center gap-3 rounded-xl border border-line bg-paper px-3 text-left font-medium transition hover:border-primary disabled:opacity-60"
+                  className="flex h-14 w-full items-center gap-3 rounded-2xl border border-line bg-raised px-4 text-left font-heading font-semibold transition hover:-translate-y-0.5 hover:border-brand disabled:translate-y-0 disabled:opacity-50"
                 >
                   <Avatar name={person.displayName} index={index} />
                   <span className="flex-1">{person.displayName}</span>
@@ -78,5 +81,6 @@ export default async function GroupPage(props: PageProps<"/t/[tripId]">) {
         )}
       </div>
     </div>
+    </Shell>
   );
 }

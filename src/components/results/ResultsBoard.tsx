@@ -1,3 +1,5 @@
+import Image from "next/image";
+import { HERO_PHOTO, PHOTOS } from "@/lib/photos";
 import type { PublicOption } from "@/server/ranking";
 import { Avatar } from "../Avatar";
 import { OptionCard } from "./OptionCard";
@@ -32,7 +34,7 @@ export function ResultsBoard({
       {options.length > 1 && <p className="text-center text-xs text-muted-foreground sm:hidden">Swipe to compare ›</p>}
 
       {/* Laptop: people as rows, options as columns. */}
-      <div className="hidden overflow-hidden rounded-2xl border border-line bg-card sm:block">
+      <div className="hidden overflow-hidden rounded-3xl border border-line bg-card sm:block">
         <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="border-b border-line align-top">
@@ -40,10 +42,19 @@ export function ResultsBoard({
               {options.map((option, i) => (
                 <th
                   key={option.optionKey}
-                  className={`p-3 text-left ${option.optionKey === lockedOptionKey ? "bg-muted" : ""}`}
+                  className={`p-3 text-left ${option.optionKey === lockedOptionKey ? "bg-raised" : ""}`}
                 >
+                  <span className="relative mb-3 block h-20 overflow-hidden rounded-xl">
+                    <Image
+                      src={(PHOTOS[option.destinationId] ?? HERO_PHOTO).src}
+                      alt=""
+                      fill
+                      sizes="320px"
+                      className="object-cover"
+                    />
+                  </span>
                   <p className="text-xs text-muted-foreground">#{i + 1}{option.optionKey === lockedOptionKey ? " · ✔ Decided" : ""}</p>
-                  <p className="font-heading text-lg font-semibold">{option.destinationName}</p>
+                  <p className="font-heading text-lg font-bold uppercase">{option.destinationName}</p>
                   <p className="text-xs font-normal text-muted-foreground">
                     {option.windowLabel} · {option.windowDates}
                   </p>

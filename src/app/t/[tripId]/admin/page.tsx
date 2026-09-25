@@ -11,6 +11,8 @@ import { formatDateTime, formatInr } from "@/lib/format";
 import { shareMessage } from "@/lib/share";
 import { publicResults } from "@/server/ranking";
 import { isOrganiser, loadTrip, progressOf } from "@/server/trips";
+import { Shell } from "@/components/Shell";
+import { stageIndex, TRIP_STAGES } from "@/components/StageRail";
 import { baseUrl } from "@/server/url";
 
 const STATE_LABEL = {
@@ -46,10 +48,11 @@ export default async function AdminPage(props: PageProps<"/t/[tripId]/admin">) {
   );
 
   return (
+    <Shell stage={{ steps: TRIP_STAGES, current: stageIndex(trip.state) }} right="Organiser">
     <div className="space-y-6">
-      <header className="space-y-2">
+      <header className="space-y-3">
         <span className="stamp">Organiser · {STATE_LABEL[trip.state]}</span>
-        <h1 className="font-heading text-3xl font-semibold">{trip.name}</h1>
+        <h1 className="display-name text-[clamp(2.5rem,9vw,6rem)]">{trip.name}</h1>
         <p className="text-muted-foreground">
           {progress.submittedCount} of {progress.total} in · answers close {formatDateTime(trip.deadline)}
         </p>
@@ -181,5 +184,6 @@ export default async function AdminPage(props: PageProps<"/t/[tripId]/admin">) {
 
       <ActivityFeed items={bundle.activity} />
     </div>
+    </Shell>
   );
 }

@@ -7,9 +7,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-dm-sans);
-  --font-heading: var(--font-fraunces);
+  --font-sans: var(--font-figtree);
+  --font-heading: var(--font-poppins);
   --color-paper: var(--paper);
+  --color-brand: var(--brand);
+  --color-raised: var(--raised);
   --color-ink: var(--ink);
   --color-fit: var(--fit);
   --color-stretch: var(--stretch);
@@ -53,17 +55,18 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Postcard theme: warm paper for intake, neutral ink for the matrix. */
+/* Voyage theme: night-blue surfaces, photo-led, steel-blue accent. Dark is the default. */
 :root {
-  --paper: #f5efe6;
-  --ink: #1f2a2e;
-  --accent-warm: #d9653b;
-  --fit: #2a7f7a;
-  --stretch: #b7791f;
-  --veto: #7a4e6d;
-  --line: #e2d8ca;
-  --card-paper: #fbf8f3;
-  --muted-ink: #5c6669;
+  --paper: #0e1a24;
+  --ink: #f4f7fa;
+  --brand: #4a6fb0;
+  --fit: #4fc3a1;
+  --stretch: #f2b84b;
+  --veto: #e58a9a;
+  --line: #243646;
+  --card-paper: #152432;
+  --muted-ink: #9fb0bf;
+  --raised: #1b2d3e;
 
   --background: var(--paper);
   --foreground: var(--ink);
@@ -71,53 +74,47 @@
   --card-foreground: var(--ink);
   --popover: var(--card-paper);
   --popover-foreground: var(--ink);
-  --primary: var(--accent-warm);
+  --primary: var(--brand);
   --primary-foreground: #ffffff;
-  --secondary: #ece4d8;
+  --secondary: var(--raised);
   --secondary-foreground: var(--ink);
-  --muted: #ece4d8;
+  --muted: var(--raised);
   --muted-foreground: var(--muted-ink);
-  --accent: #ece4d8;
+  --accent: var(--raised);
   --accent-foreground: var(--ink);
-  --destructive: #b3412b;
+  --destructive: #e0735c;
   --border: var(--line);
   --input: var(--line);
-  --ring: var(--accent-warm);
+  --ring: var(--brand);
   --chart-1: var(--fit);
   --chart-2: var(--stretch);
   --chart-3: var(--veto);
-  --chart-4: var(--accent-warm);
+  --chart-4: var(--brand);
   --chart-5: var(--muted-ink);
-  --radius: 0.75rem;
+  --radius: 1rem;
   --sidebar: var(--card-paper);
   --sidebar-foreground: var(--ink);
-  --sidebar-primary: var(--accent-warm);
+  --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ece4d8;
+  --sidebar-accent: var(--raised);
   --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--line);
-  --sidebar-ring: var(--accent-warm);
+  --sidebar-ring: var(--brand);
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --paper: #1b1f21;
-    --ink: #ede7de;
-    --accent-warm: #e98059;
-    --fit: #4db3ac;
-    --stretch: #e0a340;
-    --veto: #b98aae;
-    --line: #2e3438;
-    --card-paper: #22282b;
-    --muted-ink: #a3aaad;
-
-    --primary-foreground: #1b1f21;
-    --secondary: #2a3033;
-    --muted: #2a3033;
-    --accent: #2a3033;
-    --destructive: #e0735c;
-    --sidebar-primary-foreground: #1b1f21;
-    --sidebar-accent: #2a3033;
+    --paper: #f3f5f7;
+    --ink: #0e1a24;
+    --brand: #3f5f9a;
+    --fit: #1f8a6c;
+    --stretch: #a86a0c;
+    --veto: #a63d55;
+    --line: #d9e0e6;
+    --card-paper: #ffffff;
+    --muted-ink: #4b5b69;
+    --raised: #e8edf2;
+    --destructive: #b3412b;
   }
 }
 
@@ -134,9 +131,58 @@
 }
 
 @layer components {
+  /* Small uppercase eyebrow label. */
   .stamp {
-    @apply inline-flex items-center rounded-md border-2 border-dashed px-2 py-0.5 font-heading text-xs font-semibold tracking-wide uppercase;
-    border-color: var(--accent-warm);
-    color: var(--accent-warm);
+    @apply inline-flex items-center gap-2 font-heading text-[0.7rem] font-semibold tracking-[0.18em] uppercase;
+    color: var(--muted-ink);
+  }
+  .stamp::before {
+    content: "";
+    @apply inline-block h-px w-6;
+    background: currentColor;
+  }
+
+  /* Oversized destination name, as on a travel poster. */
+  .display-name {
+    @apply font-heading font-extrabold uppercase leading-[0.9] tracking-[-0.02em];
+    font-size: clamp(3rem, 11vw, 8rem);
+  }
+
+  /* Bottom-up night gradient that keeps white text readable on any photo. */
+  .photo-scrim {
+    background:
+      linear-gradient(to top, rgb(8 16 24 / 0.95) 0%, rgb(8 16 24 / 0.78) 40%, rgb(8 16 24 / 0.5) 72%, rgb(8 16 24 / 0.62) 100%);
+  }
+
+  /* Fine film grain over the page. */
+  .grain::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  .rise {
+    animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
   }
 }

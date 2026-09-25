@@ -22,7 +22,7 @@ export function StepVibes({ draft, onChange }: { draft: IntakeDraft; onChange: (
             step={1}
             value={draft.vibes[vibe]}
             onChange={(e) => onChange({ vibes: { ...draft.vibes, [vibe]: Number(e.target.value) } })}
-            className="w-full accent-[var(--accent-warm)]"
+            className="w-full accent-[var(--brand)]"
           />
         </label>
       ))}

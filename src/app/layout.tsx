@@ -1,16 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Fraunces } from "next/font/google";
+import { Figtree, Poppins } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+const figtree = Figtree({
+  variable: "--font-figtree",
   subsets: ["latin"],
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -21,19 +22,16 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5efe6" },
-    { media: "(prefers-color-scheme: dark)", color: "#1b1f21" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e1a24" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f5f7" },
   ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${dmSans.variable} ${fraunces.variable} h-full antialiased`}
-    >
-      <body className="flex min-h-full flex-col bg-paper font-sans text-ink">
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">{children}</main>
+    <html lang="en" className={`${figtree.variable} ${poppins.variable} h-full antialiased`}>
+      <body className="grain flex min-h-full flex-col bg-paper font-sans text-ink">
+        {children}
         <Toaster />
       </body>
     </html>

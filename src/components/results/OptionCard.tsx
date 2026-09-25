@@ -1,3 +1,5 @@
+import Image from "next/image";
+import { HERO_PHOTO, PHOTOS } from "@/lib/photos";
 import type { PublicOption } from "@/server/ranking";
 import { Avatar } from "../Avatar";
 import { STANCE_TONE } from "./stance";
@@ -15,20 +17,31 @@ export function OptionCard({
 }) {
   return (
     <article
-      className={`flex h-full flex-col gap-3 rounded-2xl border bg-card p-4 ${locked ? "border-primary ring-2 ring-primary/30" : "border-line"}`}
+      className={`flex h-full flex-col gap-3 overflow-hidden rounded-3xl border bg-card ${locked ? "border-brand ring-2 ring-brand/40" : "border-line"}`}
     >
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground">#{rank}</p>
-          <h3 className="font-heading text-2xl font-semibold leading-tight">{option.destinationName}</h3>
-          <p className="text-sm text-muted-foreground">{option.vibes.join(" · ")}</p>
+      <header className="relative h-28 text-white">
+        <Image
+          src={(PHOTOS[option.destinationId] ?? HERO_PHOTO).src}
+          alt=""
+          fill
+          sizes="(min-width: 640px) 400px, 100vw"
+          className="object-cover"
+        />
+        <div aria-hidden className="photo-scrim absolute inset-0" />
+        <div className="relative flex h-full items-end justify-between gap-3 p-4">
+          <div>
+            <p className="text-[0.7rem] font-semibold tracking-widest text-white/75 uppercase">#{rank}</p>
+            <h3 className="font-heading text-2xl font-extrabold uppercase leading-none">{option.destinationName}</h3>
+          </div>
+          <p className="text-right text-xs text-white/85">
+            {option.windowLabel}
+            <br />
+            {option.windowDates}
+          </p>
         </div>
-        <span className="stamp shrink-0 text-center">
-          {option.windowLabel}
-          <br />
-          {option.windowDates}
-        </span>
       </header>
+      <div className="flex flex-col gap-3 px-4 pb-4">
+      <p className="text-sm text-muted-foreground">{option.vibes.join(" · ")}</p>
 
       <p className="text-sm">
         Group <strong>{option.meanScore.toFixed(2)}</strong> · no one below <strong>{option.minScore.toFixed(2)}</strong>
@@ -38,7 +51,7 @@ export function OptionCard({
           ▼ Below the fairness floor for someone
         </p>
       )}
-      {locked && <p className="text-sm font-semibold text-primary">✔ Decided</p>}
+      {locked && <p className="text-sm font-semibold text-brand">✔ Decided</p>}
 
       <ul className="divide-y divide-line">
         {option.cells.map((cell, index) => (
@@ -65,6 +78,7 @@ export function OptionCard({
           ))}
         </ul>
       )}
+      </div>
     </article>
   );
 }

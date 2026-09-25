@@ -49,7 +49,7 @@ export function CommitPanel({
               type="checkbox"
               checked={selected.includes(o.optionKey)}
               onChange={() => toggle(o.optionKey)}
-              className="size-4 accent-[var(--accent-warm)]"
+              className="size-4 accent-[var(--brand)]"
             />
             I&apos;m in for {o.name}
           </label>
