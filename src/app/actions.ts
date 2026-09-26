@@ -14,18 +14,18 @@ import {
   dateWindows,
   participants,
   trips,
+  type QuizAnswers,
 } from "@/db/schema";
-import {
-  DESTINATIONS_BY_ID,
-  HARD_NO_TAG_IDS,
-  ORIGIN_CITY_NAMES,
-  VIBES,
-} from "@/lib/catalogue";
+import { DESTINATIONS_BY_ID, HARD_NO_TAG_IDS, ORIGIN_CITY_NAMES } from "@/lib/catalogue";
 import { formatDateTime } from "@/lib/format";
+import { comfortFrom, rulesPersona, rulesVibes, WAKE_VIEWS, WALLET_RATIO } from "@/lib/quiz";
 import { createTripSchema, type CreateTripInput } from "@/lib/schemas";
 import { optionName } from "@/lib/scoring";
 import { effectSummary, llmEnabled, queueRanking, resolveView } from "@/server/ranking";
 import { mapHardNoText } from "@/server/hardNoMapper";
+import { queueProfile } from "@/server/profiler";
+import { adminCookieName, checkPin, hashPin, PIN_LOCK_MS, PIN_MAX_FAILS } from "@/server/pin";
+import { nameTrip } from "@/server/tripNamer";
 import {
   COMMIT_WINDOW_MS,
   cookieName,
@@ -57,12 +57,16 @@ export async function createTrip(input: CreateTripInput): Promise<ActionResult> 
   const tripId = nanoid(12);
   const organiserToken = nanoid(21);
   const now = new Date().toISOString();
+  const name =
+    value.tripName ||
+    (await nameTrip({ people: [value.organiserName, ...value.otherNames], windows: value.windows }));
 
   await db.insert(trips).values({
     id: tripId,
-    name: value.tripName,
+    name,
     organiserToken,
     deadline: value.deadline,
+    adminPinHash: hashPin(value.pin),
     createdAt: now,
   });
   await db.insert(participants).values(
@@ -82,7 +86,63 @@ export async function createTrip(input: CreateTripInput): Promise<ActionResult> 
     `${value.organiserName} started the trip. Answers close ${formatDateTime(value.deadline)}.`,
   );
 
-  redirect(`/t/${tripId}/admin?k=${organiserToken}`);
+  // The creator is signed in to the admin page; others need the PIN.
+  const store = await cookies();
+  store.set(adminCookieName(tripId), organiserToken, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: ONE_YEAR_SECONDS,
+    path: "/",
+  });
+  redirect(`/t/${tripId}/admin`);
+}
+
+export async function suggestTripName(input: {
+  people: string[];
+  windows: { label: string; startDate: string }[];
+}): Promise<string> {
+  const people = input.people.map((p) => p.trim().slice(0, 40)).filter(Boolean).slice(0, 12);
+  const windows = input.windows.slice(0, 6).map((w) => ({ label: w.label.slice(0, 40), startDate: w.startDate }));
+  return nameTrip({ people, windows });
+}
+
+export async function verifyAdminPin(tripId: string, pin: string): Promise<ActionResult> {
+  const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
+  if (!trip?.adminPinHash) return { error: "This trip has no organiser PIN." };
+
+  const now = Date.now();
+  if (trip.adminPinLockedUntil && new Date(trip.adminPinLockedUntil).getTime() > now) {
+    const minutes = Math.ceil((new Date(trip.adminPinLockedUntil).getTime() - now) / 60000);
+    return { error: `Too many wrong tries. Try again in ${minutes} min.` };
+  }
+  if (!/^\d{4}$/.test(pin) || !checkPin(pin, trip.adminPinHash)) {
+    const fails = trip.adminPinFails + 1;
+    const locked = fails >= PIN_MAX_FAILS;
+    await db
+      .update(trips)
+      .set({
+        adminPinFails: locked ? 0 : fails,
+        adminPinLockedUntil: locked ? new Date(now + PIN_LOCK_MS).toISOString() : null,
+      })
+      .where(eq(trips.id, tripId));
+    return {
+      error: locked
+        ? "Too many wrong tries. Locked for 15 minutes."
+        : `Wrong PIN — ${PIN_MAX_FAILS - fails} ${PIN_MAX_FAILS - fails === 1 ? "try" : "tries"} left.`,
+    };
+  }
+
+  await db.update(trips).set({ adminPinFails: 0, adminPinLockedUntil: null }).where(eq(trips.id, tripId));
+  const store = await cookies();
+  store.set(adminCookieName(tripId), trip.organiserToken, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: ONE_YEAR_SECONDS,
+    path: "/",
+  });
+  refresh();
 }
 
 // ---------- Name claim ----------
@@ -110,28 +170,34 @@ export async function claimName(formData: FormData): Promise<void> {
 
 // ---------- Preferences ----------
 
-const vibeSchema = z.number().int().min(1).max(5);
+// Explicit answers (dates, budget ceiling, no-fly list, home city) drive the hard limits;
+// the quiz is turned into vibes, comfortable spend and a persona by rules now and the AI after.
+const quizSchema = z.object({
+  from: z.string().trim().max(60),
+  wakeViews: z
+    .array(z.enum(WAKE_VIEWS.map((v) => v.id) as [string, ...string[]]))
+    .min(1, "Pick at least one view you'd wake up to.")
+    .max(2, "Pick at most two views."),
+  dayTwo: z.enum(["trek", "beach", "streets", "asleep"], { message: "Tell us your day-two morning." }),
+  thisOrThat: z.object({
+    scenery: z.enum(["mountains", "sea"]),
+    plan: z.enum(["planned", "wing"]),
+    food: z.enum(["street", "cafe"]),
+    crowd: z.enum(["lively", "quiet"]),
+    travel: z.enum(["road", "fly"]),
+  }, { message: "Finish the this-or-that round." }),
+  wallet: z.enum(["splurge", "balanced", "backpacker"], { message: "Pick your wallet mood." }),
+  dream: z.string().trim().max(140, "Keep it under 140 characters."),
+});
 
-const preferencesSchema = z
-  .object({
-    homeCity: z.enum(ORIGIN_CITY_NAMES, { message: "Pick your home city." }),
-    availability: z.record(z.string(), z.enum(["yes", "maybe", "no"])),
-    budgetComfort: z.number().int().min(1000, "Enter a comfortable budget of at least ₹1,000."),
-    budgetMax: z.number().int().max(500000),
-    vibes: z.object(
-      Object.fromEntries(VIBES.map((v) => [v, vibeSchema])) as Record<
-        (typeof VIBES)[number],
-        typeof vibeSchema
-      >,
-    ),
-    hardNoTags: z
-      .array(z.enum(HARD_NO_TAG_IDS))
-      .max(3, "Pick at most three hard no's."),
-    hardNoText: z.string().trim().max(200, "Keep it under 200 characters.").optional(),
-  })
-  .refine((v) => v.budgetMax >= v.budgetComfort, {
-    message: "Your maximum must be at least your comfortable amount.",
-  });
+const preferencesSchema = z.object({
+  homeCity: z.enum(ORIGIN_CITY_NAMES, { message: "Tell us where you're flying in from." }),
+  availability: z.record(z.string(), z.enum(["yes", "maybe", "no"])),
+  budgetMax: z.number().int().min(2000, "Set a ceiling of at least ₹2,000.").max(500000),
+  hardNoTags: z.array(z.enum(HARD_NO_TAG_IDS)).max(3, "Pick at most three dealbreakers."),
+  hardNoText: z.string().trim().max(200, "Keep it under 200 characters.").optional(),
+  quiz: quizSchema,
+});
 
 export type PreferencesInput = z.input<typeof preferencesSchema>;
 
@@ -146,12 +212,12 @@ function changedFields(
     before.homeCity !== after.homeCity ||
     oldAvailability.some((a) => after.availability[a.windowId] !== a.answer);
   if (datesChanged) fields.push("dates");
-  if (before.budgetComfort !== after.budgetComfort || before.budgetMax !== after.budgetMax) {
-    fields.push("budget");
+  if (before.budgetMax !== after.budgetMax || before.quiz?.wallet !== after.quiz.wallet) fields.push("budget");
+  if (JSON.stringify({ ...before.quiz, from: "", wallet: "" }) !== JSON.stringify({ ...after.quiz, from: "", wallet: "" })) {
+    fields.push("travel personality");
   }
-  if (VIBES.some((v) => before.vibes?.[v] !== after.vibes[v])) fields.push("vibes");
   const oldTags = [...before.hardNoTags].sort().join(",");
-  if (oldTags !== [...after.hardNoTags].sort().join(",")) fields.push("hard no's");
+  if (oldTags !== [...after.hardNoTags].sort().join(",")) fields.push("no-fly list");
   return fields;
 }
 
@@ -171,7 +237,7 @@ export async function savePreferences(
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   const value = parsed.data;
   if (bundle.windows.some((w) => !value.availability[w.id])) {
-    return { error: "Answer yes, maybe or no for every date window." };
+    return { error: "Pick Confirmed, Standby or Can't fly for every departure." };
   }
 
   const firstSubmission = viewer.submittedAt === null;
@@ -182,13 +248,25 @@ export async function savePreferences(
   const beforeTop3 = formulaEffect ? named(score(bundle).top3) : [];
   const fields = firstSubmission ? [] : changedFields(bundle, viewer, value);
 
+  const quiz = value.quiz as QuizAnswers;
+  const quizChanged = firstSubmission || !viewer.persona || JSON.stringify(viewer.quiz) !== JSON.stringify(quiz);
+  // Rules give an immediate profile; the AI refines it moments later when enabled.
+  const vibes = quizChanged ? rulesVibes(quiz) : (viewer.vibes ?? rulesVibes(quiz));
+  const budgetComfort =
+    quizChanged || viewer.budgetMax !== value.budgetMax || !viewer.budgetComfort
+      ? comfortFrom(value.budgetMax, WALLET_RATIO[quiz.wallet])
+      : viewer.budgetComfort;
+  const persona = quizChanged ? (llmEnabled() ? null : rulesPersona(vibes)) : viewer.persona;
+
   await db
     .update(participants)
     .set({
       homeCity: value.homeCity,
-      budgetComfort: value.budgetComfort,
+      budgetComfort,
       budgetMax: value.budgetMax,
-      vibes: value.vibes,
+      vibes,
+      quiz,
+      persona,
       hardNoTags: value.hardNoTags,
       hardNoText: value.hardNoText || null,
       submittedAt: viewer.submittedAt ?? new Date().toISOString(),
@@ -204,7 +282,7 @@ export async function savePreferences(
   );
 
   if (firstSubmission) {
-    await logActivity(tripId, "submitted", `${viewer.displayName} sent their answers.`, viewer.id);
+    await logActivity(tripId, "submitted", `${viewer.displayName} checked in.`, viewer.id);
   } else if (fields.length > 0) {
     let message = `${viewer.displayName} updated ${fields.join(", ")}`;
     if (formulaEffect) {
@@ -214,10 +292,12 @@ export async function savePreferences(
     await logActivity(tripId, "edited", `${message}.`, viewer.id);
   }
 
-  // Re-load so a final submission moves the trip to SCORED immediately.
+  // Re-load so a final check-in moves the trip to SCORED immediately.
   await loadTrip(tripId);
-  queueRanking(tripId);
-  redirect(`/t/${tripId}/me`);
+  // The profile job re-ranks when it finishes, so only one of the two is queued.
+  if (quizChanged && llmEnabled()) queueProfile(viewer.id, tripId);
+  else queueRanking(tripId);
+  redirect(`/t/${tripId}/me?checked=1`);
 }
 
 export async function suggestHardNoTags(text: string): Promise<string[]> {

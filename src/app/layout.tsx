@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Figtree, Poppins } from "next/font/google";
+import { Figtree, IBM_Plex_Mono, Poppins } from "next/font/google";
+import { SkyBackdrop } from "@/components/SkyBackdrop";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const figtree = Figtree({
   variable: "--font-figtree",
   subsets: ["latin"],
+});
+
+const ticket = IBM_Plex_Mono({
+  variable: "--font-ticket-face",
+  subsets: ["latin"],
+  weight: ["400", "600"],
 });
 
 const poppins = Poppins({
@@ -15,7 +22,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Trip Together",
+  title: "Trip Together — the trip you actually take, together",
   description:
     "Everyone submits their trip preferences through one link; get the best options and see where each person stands.",
 };
@@ -29,8 +36,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${figtree.variable} ${poppins.variable} h-full antialiased`}>
-      <body className="grain flex min-h-full flex-col bg-paper font-sans text-ink">
+    // Browser extensions add attributes to <html> before React loads; this ignores only those
+    // attribute differences on this one element, not mismatches anywhere inside the app.
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${figtree.variable} ${poppins.variable} ${ticket.variable} h-full antialiased`}
+    >
+      <body className="grain sky-glow flex min-h-full flex-col bg-paper font-sans text-ink">
+        <SkyBackdrop />
         {children}
         <Toaster />
       </body>

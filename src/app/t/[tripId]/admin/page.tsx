@@ -3,14 +3,17 @@ import { notFound } from "next/navigation";
 import { closeEarly, resetClaim, setCostOverride, startCommitRound } from "@/app/actions";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { Avatar } from "@/components/Avatar";
+import { DepartureBoard } from "@/components/board/DepartureBoard";
 import { CopyLink } from "@/components/CopyLink";
+import { PinGate } from "@/components/PinGate";
 import { ShareButton } from "@/components/ShareButton";
 import { btn, card, field } from "@/components/styles";
 import { DESTINATIONS } from "@/lib/catalogue";
 import { formatDateTime, formatInr } from "@/lib/format";
 import { shareMessage } from "@/lib/share";
+import { boardRows } from "@/server/board";
 import { publicResults } from "@/server/ranking";
-import { isOrganiser, loadTrip, progressOf } from "@/server/trips";
+import { loadTrip, organiserAccess, progressOf } from "@/server/trips";
 import { Shell } from "@/components/Shell";
 import { stageIndex, TRIP_STAGES } from "@/components/StageRail";
 import { baseUrl } from "@/server/url";
@@ -27,9 +30,17 @@ export const maxDuration = 300;
 export default async function AdminPage(props: PageProps<"/t/[tripId]/admin">) {
   const { tripId } = await props.params;
   const { k } = await props.searchParams;
-  const key = typeof k === "string" ? k : "";
   const bundle = await loadTrip(tripId);
-  if (!bundle || !isOrganiser(bundle, key)) notFound();
+  if (!bundle) notFound();
+  if (!(await organiserAccess(bundle, typeof k === "string" ? k : null))) {
+    return (
+      <Shell>
+        <PinGate tripId={tripId} tripName={bundle.trip.name} />
+      </Shell>
+    );
+  }
+  // Only rendered for the organiser: their key signs the admin forms below.
+  const key = bundle.trip.organiserToken;
 
   const { trip } = bundle;
   const origin = await baseUrl();
@@ -60,12 +71,9 @@ export default async function AdminPage(props: PageProps<"/t/[tripId]/admin">) {
 
       <section className={`${card} space-y-4`}>
         <CopyLink url={groupLink} label="Group link — post this in WhatsApp" />
-        <CopyLink url={`${origin}/t/${tripId}/admin?k=${key}`} label="Your admin link — keep this private" />
+        <CopyLink url={`${origin}/t/${tripId}/admin`} label="Admin link — opens with your PIN" />
         <div className="flex flex-wrap gap-2">
           <ShareButton message={message} />
-          <Link href={`/t/${tripId}`} className={btn.outline}>
-            Open the group link (claim your name)
-          </Link>
           {trip.state !== "OPEN" && (
             <Link href={`/t/${tripId}/results`} className={btn.outline}>
               Results
@@ -73,6 +81,8 @@ export default async function AdminPage(props: PageProps<"/t/[tripId]/admin">) {
           )}
         </div>
       </section>
+
+      <DepartureBoard title={trip.name} rows={boardRows(bundle)} closesAt={trip.state === "OPEN" ? trip.deadline : undefined} />
 
       <section className={`${card} space-y-3`}>
         <h2 className="font-heading text-lg font-semibold">Next step</h2>
@@ -181,6 +191,14 @@ export default async function AdminPage(props: PageProps<"/t/[tripId]/admin">) {
           Defaults are rough estimates (e.g. Goa {formatInr(DESTINATIONS[0].stayPerNight)}/night).
         </p>
       </section>
+
+      <details className="rounded-2xl border border-line bg-card/60 px-5 py-4 text-sm">
+        <summary className="cursor-pointer font-medium">Forgot your PIN? Backup link</summary>
+        <p className="mt-2 text-muted-foreground">Keep this private — it opens the admin page without a PIN.</p>
+        <div className="mt-3">
+          <CopyLink url={`${origin}/t/${tripId}/admin?k=${key}`} label="Backup admin link" />
+        </div>
+      </details>
 
       <ActivityFeed items={bundle.activity} />
     </div>

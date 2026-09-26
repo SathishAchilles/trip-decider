@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActivityFeed } from "@/components/ActivityFeed";
+import { DepartureBoard } from "@/components/board/DepartureBoard";
+import { SplitFlap } from "@/components/board/SplitFlap";
 import { DecisionRule } from "@/components/DecisionRule";
 import { CommitPanel } from "@/components/results/CommitPanel";
 import { OptionShowcase } from "@/components/results/OptionShowcase";
@@ -13,6 +15,7 @@ import { stageIndex, TRIP_STAGES } from "@/components/StageRail";
 import { btn, card } from "@/components/styles";
 import { formatDateTime } from "@/lib/format";
 import { shareMessage } from "@/lib/share";
+import { boardRows } from "@/server/board";
 import { publicResults } from "@/server/ranking";
 import { loadTrip, viewerFor } from "@/server/trips";
 import { baseUrl } from "@/server/url";
@@ -45,6 +48,7 @@ export default async function ResultsPage(props: PageProps<"/t/[tripId]/results"
             nobody&apos;s answers are nudged by early results.
           </p>
         </header>
+        <DepartureBoard title={trip.name} rows={boardRows(bundle, viewer?.id)} closesAt={trip.deadline} />
         <ShareButton message={shareMessage(trip, progress, link)} label="Nudge the group on WhatsApp" />
         <DecisionRule threshold={trip.miseryThreshold} />
         <ActivityFeed items={bundle.activity} />
@@ -83,6 +87,16 @@ export default async function ResultsPage(props: PageProps<"/t/[tripId]/results"
         </div>
         <RankingBadge view={results} live={trip.state === "SCORED"} />
       </header>
+
+      {leader && (
+        <div className="flex flex-wrap items-center gap-3 overflow-x-auto rounded-2xl bg-[var(--board-bg)] px-4 py-3 text-2xl sm:text-3xl">
+          <span className="font-ticket text-xs tracking-[0.2em] text-white/60">
+            {trip.state === "LOCKED" ? "FINAL CALL" : "NOW BOARDING"}
+          </span>
+          <SplitFlap text={leader.destinationName} length={11} />
+          <span className="font-ticket text-xs tracking-widest text-amber uppercase">{leader.windowLabel}</span>
+        </div>
+      )}
 
       {results.top3.length > 0 ? (
         <OptionShowcase

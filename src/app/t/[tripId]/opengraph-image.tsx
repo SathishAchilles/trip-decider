@@ -91,7 +91,7 @@ export default async function Image({ params }: { params: Promise<{ tripId: stri
           <div style={{ fontSize: 124, fontWeight: 800, lineHeight: 0.95, textTransform: "uppercase" }}>{big}</div>
           <div style={{ fontSize: 36, opacity: 0.92 }}>{status}</div>
           <div style={{ display: "flex", fontSize: 20, opacity: 0.55, marginTop: 12 }}>
-            {`Trip Together · Photo: ${photo.photographer} / Unsplash`}
+            {"Trip Together · one link, one trip"}
           </div>
         </div>
       </div>

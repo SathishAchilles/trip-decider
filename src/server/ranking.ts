@@ -7,6 +7,7 @@ import { db } from "@/db/client";
 import { rankings } from "@/db/schema";
 import { DESTINATIONS_BY_ID, HARD_NO_TAGS, topVibes, VIBE_LABELS, type HardNoTag } from "@/lib/catalogue";
 import { costFor, nights } from "@/lib/cost";
+import { describeQuiz } from "@/lib/quiz";
 import { stanceFor } from "@/lib/scoring";
 import type { Blocker, PersonCell, ScoredOption, ScoredTrip, Stance, VetoReason } from "@/lib/types";
 import {
@@ -30,6 +31,14 @@ import {
 } from "./trips";
 
 const PENDING_STALE_MS = 10 * 60 * 1000;
+// A check-in's AI profile triggers its own re-rank; page views only step in if it seems lost.
+const PROFILE_GRACE_MS = 3 * 60 * 1000;
+
+function profilesPending(bundle: TripBundle): boolean {
+  return bundle.participants.some(
+    (p) => p.submittedAt !== null && !p.persona && !olderThan(p.submittedAt, PROFILE_GRACE_MS),
+  );
+}
 const FAILED_RETRY_MS = 5 * 60 * 1000;
 
 export type PublicCell = {
@@ -243,6 +252,8 @@ export function rankingInput(bundle: TripBundle, scored: ScoredTrip) {
             vibes: p.vibes,
             hardNos: p.hardNoTags.map((t) => HARD_NO_TAGS[t as HardNoTag] ?? t),
             notes: p.hardNoText ?? "",
+            persona: p.persona ? `${p.persona.title} — ${p.persona.line}` : null,
+            quiz: p.quiz ? describeQuiz(p.quiz) : null,
           },
     ),
     options: feasible.map((o) => {
@@ -317,7 +328,10 @@ export async function resolveView(bundle: TripBundle): Promise<{ view: RankedVie
   if (row?.status === "failed") {
     return { view: formulaView(bundle, scored, "failed"), queue: olderThan(row.updatedAt, FAILED_RETRY_MS) };
   }
-  return { view: formulaView(bundle, scored, "pending"), queue: bundle.trip.state === "SCORED" };
+  return {
+    view: formulaView(bundle, scored, "pending"),
+    queue: bundle.trip.state === "SCORED" && !profilesPending(bundle),
+  };
 }
 
 // ---------- Running the ranker ----------

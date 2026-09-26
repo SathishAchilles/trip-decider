@@ -18,6 +18,22 @@ export type Vibes = {
   chill: number;
   nightlife: number;
 };
+// Playful answers the AI turns into vibes, comfortable spend and a persona.
+export type QuizAnswers = {
+  from: string;
+  wakeViews: string[];
+  dayTwo: "trek" | "beach" | "streets" | "asleep";
+  thisOrThat: {
+    scenery: "mountains" | "sea";
+    plan: "planned" | "wing";
+    food: "street" | "cafe";
+    crowd: "lively" | "quiet";
+    travel: "road" | "fly";
+  };
+  wallet: "splurge" | "balanced" | "backpacker";
+  dream: string;
+};
+export type Persona = { emoji: string; title: string; line: string; source: "ai" | "rules" };
 export type ActivityKind = "submitted" | "edited" | "state" | "veto";
 export type RankingStatus = "pending" | "done" | "failed";
 
@@ -38,6 +54,10 @@ export const trips = tripTogether
     lockedOptionKey: text("locked_option_key"),
     // The ranking displayed when the commit round started; COMMIT and LOCKED decide from it.
     decisionSnapshot: jsonb("decision_snapshot").$type<unknown>(),
+    // Organiser PIN for /admin: "salt:scrypt-hash", with a lockout after repeated misses.
+    adminPinHash: text("admin_pin_hash"),
+    adminPinFails: integer("admin_pin_fails").notNull().default(0),
+    adminPinLockedUntil: text("admin_pin_locked_until"),
     createdAt: text("created_at").notNull(),
   })
   .enableRLS();
@@ -57,6 +77,8 @@ export const participants = tripTogether
     vibes: jsonb("vibes").$type<Vibes>(),
     hardNoTags: jsonb("hard_no_tags").$type<string[]>().notNull().default([]),
     hardNoText: text("hard_no_text"),
+    quiz: jsonb("quiz").$type<QuizAnswers>(),
+    persona: jsonb("persona").$type<Persona>(),
     submittedAt: text("submitted_at"),
   })
   .enableRLS();
@@ -148,4 +170,13 @@ export const rankings = tripTogether
     },
     (t) => [primaryKey({ columns: [t.tripId, t.inputHash] })],
   )
+  .enableRLS();
+
+// Small key/value cache for AI-generated shared data (e.g. upcoming long weekends).
+export const appCache = tripTogether
+  .table("app_cache", {
+    key: text("key").primaryKey(),
+    value: jsonb("value").$type<unknown>().notNull(),
+    createdAt: text("created_at").notNull(),
+  })
   .enableRLS();

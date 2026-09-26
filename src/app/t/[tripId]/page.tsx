@@ -2,11 +2,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { claimName } from "@/app/actions";
 import { Avatar } from "@/components/Avatar";
+import { DepartureBoard } from "@/components/board/DepartureBoard";
 import { DecisionRule } from "@/components/DecisionRule";
 import { ShareButton } from "@/components/ShareButton";
 import { btn, card } from "@/components/styles";
 import { formatDateTime } from "@/lib/format";
 import { shareMessage } from "@/lib/share";
+import { boardRows } from "@/server/board";
 import { publicResults } from "@/server/ranking";
 import { loadTrip, progressOf, viewerFor } from "@/server/trips";
 import { Shell } from "@/components/Shell";
@@ -42,8 +44,14 @@ export default async function GroupPage(props: PageProps<"/t/[tripId]">) {
         </p>
       </header>
 
+      <DepartureBoard
+        title={bundle.trip.name}
+        rows={boardRows(bundle)}
+        closesAt={bundle.trip.state === "OPEN" ? bundle.trip.deadline : undefined}
+      />
+
       <section className={`${card} space-y-3`}>
-        <h2 className="font-heading text-lg font-semibold">Tap your name</h2>
+        <h2 className="font-heading text-xl font-semibold">Who&apos;s checking in? Tap your name</h2>
         {claimed && (
           <p role="alert" className="text-sm font-medium text-veto">
             That name is already taken on another phone. Ask the organiser to reset it.

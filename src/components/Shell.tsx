@@ -25,7 +25,9 @@ export function Shell({
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-5 sm:px-8">
         <Link href="/" className="flex items-center gap-2 font-heading text-lg font-bold tracking-tight">
           <Logo />
-          Trip Together
+          <span>
+            Trip <span className="together">Together</span>
+          </span>
         </Link>
         {right && <div className="text-sm font-medium text-muted-foreground">{right}</div>}
       </header>

@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import { DESTINATIONS_BY_ID } from "@/lib/catalogue";
 import { scoreTrip } from "@/lib/scoring";
+import { adminCookieName } from "./pin";
 import type { AvailabilityAnswer, ScoredTrip, ScoringInput } from "@/lib/types";
 
 export type TripRow = typeof trips.$inferSelect;
@@ -210,6 +211,13 @@ export async function viewerFor(bundle: TripBundle): Promise<ParticipantRow | nu
 
 export function isOrganiser(bundle: TripBundle, key: string | undefined | null): boolean {
   return !!key && key === bundle.trip.organiserToken;
+}
+
+// Organiser access: the backup key in the URL, or the cookie set on creation or PIN entry.
+export async function organiserAccess(bundle: TripBundle, key: string | undefined | null): Promise<boolean> {
+  if (isOrganiser(bundle, key)) return true;
+  const store = await cookies();
+  return store.get(adminCookieName(bundle.trip.id))?.value === bundle.trip.organiserToken;
 }
 
 export type Progress = {

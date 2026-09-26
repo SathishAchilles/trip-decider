@@ -1,6 +1,8 @@
+import { randomBytes, scryptSync } from "node:crypto";
 import { nanoid } from "nanoid";
 import { db } from "../src/db/client";
-import { activity, availability, dateWindows, participants, trips, type Vibes } from "../src/db/schema";
+import { activity, availability, dateWindows, participants, trips, type QuizAnswers } from "../src/db/schema";
+import { comfortFrom, rulesPersona, rulesVibes, WALLET_RATIO } from "../src/lib/quiz";
 
 type Answer = "yes" | "maybe" | "no";
 
@@ -8,26 +10,72 @@ type SeedPerson = {
   name: string;
   city?: string;
   answers?: [Answer, Answer, Answer];
-  comfort?: number;
   max?: number;
-  vibes?: Vibes;
+  quiz?: QuizAnswers;
   hardNo?: string[];
 };
 
-const vibes = (
-  beach: number,
-  hills: number,
-  heritage: number,
-  adventure: number,
-  chill: number,
-  nightlife: number,
-): Vibes => ({ beach, hills, heritage, adventure, chill, nightlife });
-
 const PEOPLE: SeedPerson[] = [
-  { name: "Riya", city: "Bengaluru", answers: ["yes", "yes", "maybe"], comfort: 15000, max: 22000, vibes: vibes(5, 4, 3, 2, 5, 2), hardNo: [] },
-  { name: "Siddharth", city: "Mumbai", answers: ["no", "yes", "yes"], comfort: 18000, max: 25000, vibes: vibes(4, 3, 2, 5, 3, 5), hardNo: ["high_altitude"] },
-  { name: "Karan", city: "Delhi", answers: ["yes", "yes", "yes"], comfort: 10000, max: 16000, vibes: vibes(3, 5, 3, 4, 4, 2), hardNo: ["overnight_bus"] },
-  { name: "Aisha", city: "Hyderabad", answers: ["maybe", "yes", "maybe"], comfort: 12000, max: 18000, vibes: vibes(4, 4, 5, 1, 5, 1), hardNo: ["trek", "alcohol_centric"] },
+  {
+    name: "Riya",
+    city: "Bengaluru",
+    answers: ["yes", "yes", "maybe"],
+    max: 22000,
+    hardNo: [],
+    quiz: {
+      from: "Koramangala",
+      wakeViews: ["varkala", "munnar"],
+      dayTwo: "beach",
+      thisOrThat: { scenery: "sea", plan: "wing", food: "cafe", crowd: "quiet", travel: "fly" },
+      wallet: "balanced",
+      dream: "hammocks, sunsets and no alarms",
+    },
+  },
+  {
+    name: "Siddharth",
+    city: "Mumbai",
+    answers: ["no", "yes", "yes"],
+    max: 25000,
+    hardNo: ["high_altitude"],
+    quiz: {
+      from: "Andheri",
+      wakeViews: ["rishikesh", "goa"],
+      dayTwo: "trek",
+      thisOrThat: { scenery: "mountains", plan: "wing", food: "street", crowd: "lively", travel: "road" },
+      wallet: "splurge",
+      dream: "rafting by day, a loud beach shack by night",
+    },
+  },
+  {
+    name: "Karan",
+    city: "Delhi",
+    answers: ["yes", "yes", "yes"],
+    max: 16000,
+    hardNo: ["overnight_bus"],
+    quiz: {
+      from: "Gurgaon",
+      wakeViews: ["munnar", "manali"],
+      dayTwo: "trek",
+      thisOrThat: { scenery: "mountains", plan: "planned", food: "street", crowd: "quiet", travel: "road" },
+      wallet: "backpacker",
+      dream: "a cheap homestay with a mountain view",
+    },
+  },
+  {
+    name: "Aisha",
+    city: "Hyderabad",
+    answers: ["maybe", "yes", "maybe"],
+    max: 18000,
+    hardNo: ["trek", "alcohol_centric"],
+    quiz: {
+      from: "Gachibowli",
+      wakeViews: ["hampi", "varkala"],
+      dayTwo: "streets",
+      thisOrThat: { scenery: "sea", plan: "planned", food: "cafe", crowd: "quiet", travel: "fly" },
+      wallet: "balanced",
+      dream: "old palaces, good coffee, slow mornings",
+    },
+  },
   { name: "Preethi" },
 ];
 
@@ -36,6 +84,14 @@ const WINDOWS = [
   { label: "Christmas", startDate: "2026-12-25", endDate: "2026-12-27" },
   { label: "Republic Day", startDate: "2027-01-23", endDate: "2027-01-26" },
 ];
+
+const DEMO_PIN = "1234";
+
+// Same "salt:scrypt-hash" format as src/server/pin.ts (which is server-only).
+function hashPin(pin: string): string {
+  const salt = randomBytes(16).toString("hex");
+  return `${salt}:${scryptSync(pin, salt, 32).toString("hex")}`;
+}
 
 async function main() {
   const base = process.env.SEED_BASE_URL ?? "http://localhost:3000";
@@ -48,6 +104,7 @@ async function main() {
     name: "College trip",
     organiserToken,
     deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    adminPinHash: hashPin(DEMO_PIN),
     createdAt: now,
   });
 
@@ -68,9 +125,11 @@ async function main() {
       editToken,
       claimed: submitted,
       homeCity: person.city ?? null,
-      budgetComfort: person.comfort ?? null,
+      budgetComfort: person.quiz && person.max ? comfortFrom(person.max, WALLET_RATIO[person.quiz.wallet]) : null,
       budgetMax: person.max ?? null,
-      vibes: person.vibes ?? null,
+      vibes: person.quiz ? rulesVibes(person.quiz) : null,
+      quiz: person.quiz ?? null,
+      persona: person.quiz ? rulesPersona(rulesVibes(person.quiz)) : null,
       hardNoTags: person.hardNo ?? [],
       submittedAt: submitted ? now : null,
     });
@@ -83,14 +142,15 @@ async function main() {
         tripId,
         participantId: id,
         kind: "submitted",
-        message: `${person.name} sent their answers.`,
+        message: `${person.name} checked in.`,
         createdAt: now,
       });
     }
   }
 
   console.log(`Group link:  ${base}/t/${tripId}`);
-  console.log(`Admin link:  ${base}/t/${tripId}/admin?k=${organiserToken}`);
+  console.log(`Admin link:  ${base}/t/${tripId}/admin  (PIN ${DEMO_PIN})`);
+  console.log(`Backup link: ${base}/t/${tripId}/admin?k=${organiserToken}`);
   console.log(`Cookie name: tt_${tripId}`);
   for (const t of tokens) console.log(`  ${t.name.padEnd(10)} ${t.token}`);
 }

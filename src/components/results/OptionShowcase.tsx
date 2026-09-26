@@ -5,7 +5,6 @@ import { useState } from "react";
 import { HERO_PHOTO, PHOTOS } from "@/lib/photos";
 import type { PublicOption } from "@/server/ranking";
 import { FitDots } from "../FitDots";
-import { PhotoCredit } from "../PhotoCredit";
 import { btn } from "../styles";
 
 function pad(n: number): string {
@@ -148,14 +147,11 @@ export function OptionShowcase({
               </button>
             </div>
           )}
-          <div className="flex flex-col items-end gap-1">
-            <p className="flex items-center gap-3 font-heading text-xs font-semibold text-white/80">
-              {pad(index + 1)}
-              <span aria-hidden className="h-px w-12 bg-white/40" />
-              {pad(options.length)}
-            </p>
-            <PhotoCredit photo={photo} />
-          </div>
+          <p className="flex items-center gap-3 font-heading text-xs font-semibold text-white/80">
+            {pad(index + 1)}
+            <span aria-hidden className="h-px w-12 bg-white/40" />
+            {pad(options.length)}
+          </p>
         </div>
       </div>
     </section>
