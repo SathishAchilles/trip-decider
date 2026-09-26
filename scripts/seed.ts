@@ -91,7 +91,7 @@ async function main() {
 
   console.log(`Group link:  ${base}/t/${tripId}`);
   console.log(`Admin link:  ${base}/t/${tripId}/admin?k=${organiserToken}`);
-  console.log(`Cookie name: td_${tripId}`);
+  console.log(`Cookie name: tt_${tripId}`);
   for (const t of tokens) console.log(`  ${t.name.padEnd(10)} ${t.token}`);
 }
 

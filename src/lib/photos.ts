@@ -8,7 +8,7 @@ export type Photo = {
   photoUrl: string;
 };
 
-const UTM = "?utm_source=trip_decider&utm_medium=referral";
+const UTM = "?utm_source=trip_together&utm_medium=referral";
 
 function photo(id: string, alt: string, photographer: string, username: string, photoId: string): Photo {
   return {

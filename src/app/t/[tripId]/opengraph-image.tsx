@@ -5,7 +5,7 @@ import { HERO_PHOTO, PHOTOS } from "@/lib/photos";
 import { publicResults } from "@/server/ranking";
 import { loadTrip } from "@/server/trips";
 
-export const alt = "Trip Decider — group trip status";
+export const alt = "Trip Together — group trip status";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 // The state line changes as people answer, so never serve a cached image.
@@ -25,7 +25,7 @@ export default async function Image({ params }: { params: Promise<{ tripId: stri
   const { tripId } = await params;
   const bundle = await loadTrip(tripId);
 
-  let title = "Trip Decider";
+  let title = "Trip Together";
   let big = "One link";
   let status = "Plan the trip in one link";
   let photo = HERO_PHOTO;
@@ -91,7 +91,7 @@ export default async function Image({ params }: { params: Promise<{ tripId: stri
           <div style={{ fontSize: 124, fontWeight: 800, lineHeight: 0.95, textTransform: "uppercase" }}>{big}</div>
           <div style={{ fontSize: 36, opacity: 0.92 }}>{status}</div>
           <div style={{ display: "flex", fontSize: 20, opacity: 0.55, marginTop: 12 }}>
-            {`Trip Decider · Photo: ${photo.photographer} / Unsplash`}
+            {`Trip Together · Photo: ${photo.photographer} / Unsplash`}
           </div>
         </div>
       </div>

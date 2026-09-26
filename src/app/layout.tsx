@@ -15,7 +15,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Trip Decider",
+  title: "Trip Together",
   description:
     "Everyone submits their trip preferences through one link; get the best options and see where each person stands.",
 };

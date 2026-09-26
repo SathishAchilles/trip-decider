@@ -36,7 +36,7 @@ export type TripBundle = {
 export const COMMIT_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 export function cookieName(tripId: string): string {
-  return `td_${tripId}`;
+  return `tt_${tripId}`;
 }
 
 export async function logActivity(
